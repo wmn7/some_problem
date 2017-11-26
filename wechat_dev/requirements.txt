@@ -1,0 +1,7 @@
+Flask
+ipython
+pylint
+wechatpy
+flask-shell-ipython
+PyJWT
+cryptography
