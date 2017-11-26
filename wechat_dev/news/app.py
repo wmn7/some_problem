@@ -17,7 +17,7 @@ def create_app(config=None):
         app (object): Flask App 实例
     """
 
-    app = Flask('wx_dev')
+    app = Flask(__name__)
 
     # 注册 Blueprint
     app.register_blueprint(api)
