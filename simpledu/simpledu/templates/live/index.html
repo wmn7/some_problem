@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+#message-box {
+    background-color: #eee;
+    font-size: 15px;
+    padding: 3px 0 0 5px;
+    width: 100%;
+    height: 455px;
+    border-radius: 3px;
+    margin-bottom: 10px;
+      overflow: scroll; /* 显示滚动条 */
+}
+</style>
+{% endblock %}
+
+{% block title %}Live{% endblock %}
+
+{% block body %}
+<div class="row">
+  <div class="col-md-9">
+      <video id="videoElement" width="100%" height="500px" controls="controls"></video>
+  </div>
+  <div class="col-md-3">
+    <!--下面是显示聊天语句的地方-->
+    <div id="message-box">
+    </div>
+    <!--下面是发送的窗口-->
+    <div class="input-group" id="message-form">
+        <input type="text" class="form-control">
+        <span class="input-group-btn">
+            <button class="btn btn-primary" type="button">发言</button>
+        </span>
+    </div><!-- /input-group -->
+
+  </div>
+</div>
+{% endblock %}
+
+{% block tail_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename="bootstrap-3.3.7-dist/js/flv.min.js") }}"></script>
+<script>
+if (flvjs.isSupported()) {
+    // 获取 video 标签
+    var videoElement = document.getElementById('videoElement');
+   // 初始化播放器
+    var flvPlayer = flvjs.createPlayer({
+        // 流的类型
+        type: 'flv',
+        // 是否是直播
+        isLive: true,
+        // 直播流地址
+        url: 'http://localhost:7001/live/test.flv'
+    });
+    flvPlayer.attachMediaElement(videoElement);
+    flvPlayer.load();
+    // 播放直播
+    flvPlayer.play();
+}
+
+//前段初始化inbox和outbox这两个函数
+var inbox = new WebSocket('ws://'+ location.host + "/ws/recv");
+var outbox = new WebSocket('ws://'+ location.host + "/ws/send");
+
+//为发言按钮绑定事件
+$("#message-form button").on("click", function(event) {
+  // 获取用户发言内容
+  text = $('#message-form input').val();
+  // 获取用户名
+  username = $('#username').text();
+  // 发送数据到 websocket 的后台处理接口
+  outbox.send(JSON.stringify({ username: username, text: text }));
+  // 提交后，将输入框设置为空
+  $('#message-form input').val('');
+});
+
+//为inbox绑定onmessage回调函数
+inbox.onmessage = function(message) {
+    console.log(message);
+    var data = JSON.parse(message.data);
+    $("#message-box").append('<p><b>' + data.username + '</b>' + ': ' + data.text + '</p>');
+  };
+
+//为 inbox 和 outbox 绑定 onclose 事件，当 WebSocket 断开后，自动重连：
+inbox.onclose = function(){
+    this.inbox = new WebSocket('ws://'+ location.host + "/ws/recv");
+};
+
+outbox.onclose = function(){
+    this.outbox = new WebSocket('ws://'+ location.host + "/ws/send");
+};
+</script>
+{% endblock %}
